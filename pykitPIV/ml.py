@@ -725,40 +725,8 @@ class PIVEnv(gym.Env):
                                   time_separation=self.__flowfield_spec.time_separation,
                                   random_seed=self.__random_seed)
 
-            if self.__flowfield_type == 'random smooth':
-
-                flowfield.generate_random_velocity_field(gaussian_filters=self.__flowfield_spec.gaussian_filters,
-                                                         n_gaussian_filter_iter=self.__flowfield_spec.n_gaussian_filter_iter,
-                                                         displacement=self.__flowfield_spec.displacement)
-
-            elif self.__flowfield_type == 'radial':
-
-                flowfield.generate_radial_velocity_field(source=self.__flowfield_spec.radial_source,
-                                                         displacement=self.__flowfield_spec.displacement,
-                                                         imposed_source_location=self.__flowfield_spec.radial_imposed_source_location,
-                                                         sigma=self.__flowfield_spec.radial_sigma,
-                                                         epsilon=self.__flowfield_spec.radial_epsilon)
-
-            elif self.__flowfield_type == 'constant':
-
-                flowfield.generate_constant_velocity_field(u_magnitude=self.__flowfield_spec.constant_u_magnitude,
-                                                           v_magnitude=self.__flowfield_spec.constant_v_magnitude)
-
-            elif self.__flowfield_type == 'taylor green vortex':
-
-                flowfield.generate_taylor_green_vortex_velocity_field(k=self.__flowfield_spec.taylor_green_k,
-                                                                      imposed_origin=self.__flowfield_spec.imposed_origin,
-                                                                      displacement=self.__flowfield_spec.displacement)
-
-            if self.__flowfield_spec.apply_SLM:
-
-                # Solve the simplified Langevin model (SLM) for the mean velocity fields:
-                flowfield.generate_langevin_velocity_field(mean_field=flowfield.velocity_field,
-                                                           integral_time_scale=self.__flowfield_spec.integral_time_scale,
-                                                           sigma=self.__flowfield_spec.sigma,
-                                                           n_stochastic_particles=self.__flowfield_spec.n_stochastic_particles,
-                                                           n_iterations=self.__flowfield_spec.n_iterations,
-                                                           verbose=False)
+            # Apply the velocity field and return the updated FlowField object:
+            flowfield = self.__generate_flowfield(flowfield)
 
             # This is an object of the pykitPIV.flowfield.FlowField class:
             self.__flowfield = flowfield
@@ -883,6 +851,52 @@ class PIVEnv(gym.Env):
             else:
                 self.__time_separation = new_time_separation
                 self.__flowfield.time_separation = new_time_separation
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def __generate_flowfield(self,
+                             flowfield):
+        """
+        Constructor of the velocity field that contains all available velocity field functions from the FlowField class.
+        """
+
+        if self.__flowfield_type == 'random smooth':
+
+            flowfield.generate_random_velocity_field(gaussian_filters=self.__flowfield_spec.gaussian_filters,
+                                                     n_gaussian_filter_iter=self.__flowfield_spec.n_gaussian_filter_iter,
+                                                     displacement=self.__flowfield_spec.displacement)
+
+        elif self.__flowfield_type == 'radial':
+
+            flowfield.generate_radial_velocity_field(source=self.__flowfield_spec.radial_source,
+                                                     displacement=self.__flowfield_spec.displacement,
+                                                     imposed_source_location=self.__flowfield_spec.radial_imposed_source_location,
+                                                     sigma=self.__flowfield_spec.radial_sigma,
+                                                     epsilon=self.__flowfield_spec.radial_epsilon)
+
+        elif self.__flowfield_type == 'constant':
+
+            flowfield.generate_constant_velocity_field(u_magnitude=self.__flowfield_spec.constant_u_magnitude,
+                                                       v_magnitude=self.__flowfield_spec.constant_v_magnitude)
+
+        elif self.__flowfield_type == 'taylor green vortex':
+
+            flowfield.generate_taylor_green_vortex_velocity_field(k=self.__flowfield_spec.taylor_green_k,
+                                                                  imposed_origin=self.__flowfield_spec.imposed_origin,
+                                                                  displacement=self.__flowfield_spec.displacement)
+
+        # The simplified Langevin model will be added atop any thus far generated flow field:
+        if self.__flowfield_spec.apply_SLM:
+
+            # Solve the simplified Langevin model (SLM) for the mean velocity fields:
+            flowfield.generate_langevin_velocity_field(mean_field=flowfield.velocity_field,
+                                                       integral_time_scale=self.__flowfield_spec.integral_time_scale,
+                                                       sigma=self.__flowfield_spec.sigma,
+                                                       n_stochastic_particles=self.__flowfield_spec.n_stochastic_particles,
+                                                       n_iterations=self.__flowfield_spec.n_iterations,
+                                                       verbose=False)
+
+        return flowfield
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1066,27 +1080,8 @@ class PIVEnv(gym.Env):
                                       time_separation=self.time_separation,
                                       random_seed=self.__random_seed)
 
-                if self.__flowfield_type == 'random smooth':
-                    flowfield.generate_random_velocity_field(gaussian_filters=self.__flowfield_spec.gaussian_filters,
-                                                             n_gaussian_filter_iter=self.__flowfield_spec.n_gaussian_filter_iter,
-                                                             displacement=self.__flowfield_spec.displacement)
-
-                elif self.__flowfield_type == 'radial':
-
-                    flowfield.generate_radial_velocity_field(source=self.__flowfield_spec.radial_source,
-                                                             displacement=self.__flowfield_spec.displacement,
-                                                             imposed_source_location=self.__flowfield_spec.radial_imposed_source_location,
-                                                             sigma=self.__flowfield_spec.radial_sigma,
-                                                             epsilon=self.__flowfield_spec.radial_epsilon)
-
-                if self.__flowfield_spec.apply_SLM:
-                    # Solve the simplified Langevin model (SLM) for the mean velocity fields:
-                    flowfield.generate_langevin_velocity_field(mean_field=flowfield.velocity_field,
-                                                               integral_time_scale=self.__flowfield_spec.integral_time_scale,
-                                                               sigma=self.__flowfield_spec.sigma,
-                                                               n_stochastic_particles=self.__flowfield_spec.n_stochastic_particles,
-                                                               n_iterations=self.__flowfield_spec.n_iterations,
-                                                               verbose=False)
+                # Apply the velocity field and return the updated FlowField object:
+                flowfield = self.__generate_flowfield(flowfield)
 
                 # This is an object of the pykitPIV.flowfield.FlowField class:
                 self.__flowfield = flowfield
