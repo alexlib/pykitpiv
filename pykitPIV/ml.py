@@ -1577,14 +1577,14 @@ class CameraAgentSingleDQN:
     Creates a reinforcement learning (RL) agent that operates a virtual camera in a PIV experimental setting
     and provides a training loop for Q-learning. Here, we use Q-learning with a single deep neural network (DNN) model.
 
-    The goal of the RL agent is to learn the mapping function, :math:`f`,
-    from :math:`\\text{cues} \\rightarrow \\text{actions}`:
+    The goal of the RL agent is to learn the policy, which is mapping function, :math:`\\pi`,
+    from :math:`\\text{cues} \\rightarrow \\text{actions}` such that:
 
     .. math::
 
-        \\text{action} = f(\\text{cues} )
+        \\text{action} = \\pi(\\text{cues} )
 
-    where :math:`f` is the trained DNN model.
+    and where :math:`\\pi` is the trained DNN model.
 
     **Example:**
 
@@ -1848,14 +1848,14 @@ class CameraAgentDoubleDQN:
     Having two Q-networks separates the process of finding which action has the maximum Q-value from
     the process of learning precisely what that maximum Q-value should be.
 
-    The goal of the RL agent is to learn the mapping function, :math:`f`,
-    from :math:`\\text{cues} \\rightarrow \\text{actions}`:
+    The goal of the RL agent is to learn the policy, which is mapping function, :math:`\\pi`,
+    from :math:`\\text{cues} \\rightarrow \\text{actions}` such that:
 
     .. math::
 
-        \\text{action} = f(\\text{cues} )
+        \\text{action} = \\pi(\\text{cues} )
 
-    where :math:`f` is the trained DNN model.
+    and where :math:`\\pi` is the trained DNN model.
 
     **Example:**
 
