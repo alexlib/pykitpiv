@@ -19,6 +19,7 @@ _available_velocity_fields = {'constant': 'generate_constant_velocity_field',
                               'spherical harmonics': 'generate_spherical_harmonics_velocity_field',
                               'radial': 'generate_radial_velocity_field',
                               'potential': 'generate_potential_velocity_field',
+                              'taylor green vortex': 'generate_taylor_green_vortex_velocity_field',
                               'Langevin': 'generate_langevin_velocity_field'}
 
 ########################################################################################################################
@@ -395,6 +396,9 @@ class FlowField:
 
             - potential
                 Use function: generate_potential_velocity_field
+
+            - taylor green vortex
+                Use function: generate_taylor_green_vortex_velocity_field
 
             - Langevin
                 Use function: generate_langevin_velocity_field
