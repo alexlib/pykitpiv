@@ -1303,7 +1303,7 @@ class FlowField:
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def generate_taylor_green_vortex_velocity_field(self,
-                                                    k=1,
+                                                    k=0.01,
                                                     imposed_origin=(0, 0),
                                                     displacement=(1, 4)):
         """
