@@ -744,6 +744,12 @@ class PIVEnv(gym.Env):
                 flowfield.generate_constant_velocity_field(u_magnitude=self.__flowfield_spec.constant_u_magnitude,
                                                            v_magnitude=self.__flowfield_spec.constant_v_magnitude)
 
+            elif self.__flowfield_type == 'taylor green vortex':
+
+                flowfield.generate_taylor_green_vortex_velocity_field(k=self.__flowfield_spec.taylor_green_k,
+                                                                      imposed_origin=self.__flowfield_spec.imposed_origin,
+                                                                      displacement=self.__flowfield_spec.displacement)
+
             if self.__flowfield_spec.apply_SLM:
 
                 # Solve the simplified Langevin model (SLM) for the mean velocity fields:
