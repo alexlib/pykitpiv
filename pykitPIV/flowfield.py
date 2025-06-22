@@ -66,6 +66,8 @@ class FlowFieldSpecs:
                  radial_imposed_source_location=None,
                  radial_sigma=20,
                  radial_epsilon=1e-6,
+                 taylor_green_k=1,
+                 imposed_origin=(0, 0),
                  apply_SLM=False,
                  integral_time_scale=1,
                  sigma=1,
@@ -88,6 +90,8 @@ class FlowFieldSpecs:
         self.radial_imposed_source_location = radial_imposed_source_location
         self.radial_sigma = radial_sigma
         self.radial_epsilon = radial_epsilon
+        self.taylor_green_k = taylor_green_k
+        self.imposed_origin = imposed_origin
         self.apply_SLM = apply_SLM
         self.integral_time_scale = integral_time_scale
         self.sigma = sigma
@@ -112,6 +116,8 @@ class FlowFieldSpecs:
                 f"radial_imposed_source_location={self.radial_imposed_source_location},\n"
                 f"radial_sigma={self.radial_sigma},\n"
                 f"radial_epsilon={self.radial_epsilon},\n"
+                f"taylor_green_k={self.taylor_green_k},\n"
+                f"imposed_origin={self.imposed_origin},\n"
                 f"apply_SLM={self.apply_SLM},\n"
                 f"integral_time_scale={self.integral_time_scale},\n"
                 f"sigma={self.sigma},\n"
