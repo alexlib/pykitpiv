@@ -552,6 +552,7 @@ class PIVEnv(gym.Env):
         This function has to take as an input the predicted displacement field tensor
         and return a ``numpy`` array of shape ``(1, N)`` of :math:`N` cues computed
         from the predicted displacement field tensor.
+        If set to ``None``, the cues will be the whole displacement field tensor.
     :param particle_spec: (optional)
         ``dict`` or ``particle.ParticleSpec`` object containing specifications for constructing
         an instance of ``Particle`` class.
@@ -605,7 +606,7 @@ class PIVEnv(gym.Env):
     def __init__(self,
                  interrogation_window_size,
                  interrogation_window_size_buffer,
-                 cues_function,
+                 cues_function=None,
                  particle_spec=None,
                  motion_spec=None,
                  image_spec=None,
@@ -628,8 +629,9 @@ class PIVEnv(gym.Env):
         if interrogation_window_size_buffer < 0:
             raise ValueError("Parameter `interrogation_window_size_buffer` has to non-negative.")
 
-        if not callable(cues_function):
-            raise ValueError("Parameter `cues_function` has to be a callable.")
+        if cues_function is not None:
+            if not callable(cues_function):
+                raise ValueError("Parameter `cues_function` has to be a callable.")
 
         if particle_spec is not None:
             if isinstance(particle_spec, dict):
@@ -1136,11 +1138,15 @@ class PIVEnv(gym.Env):
         self.__prediction_tensor = prediction_tensor
         self.__targets_tensor = targets_tensor
 
-        # Compute the cues based on the current prediction tensor:
-        cues = self.cues_function(prediction_tensor)
+        if self.cues_function is not None:
+            # Compute the cues based on the current prediction tensor:
+            cues = self.cues_function(prediction_tensor)
 
-        # Find out how many cues the RL agent will be looking at, this is useful information for later:
-        (_, self.n_cues) = np.shape(cues)
+            # Find out how many cues the RL agent will be looking at, this is useful information for later:
+            (_, self.n_cues) = np.shape(cues)
+        else:
+            cues = prediction_tensor
+            (_, self.n_cues, _, _) = np.shape(cues)
 
         return camera_position, cues
 
@@ -1259,8 +1265,11 @@ class PIVEnv(gym.Env):
         reward = reward_function(vector_field=prediction_tensor,
                                  transformation=reward_transformation)
 
-        # Compute the cues based on the current prediction tensor:
-        cues = self.cues_function(prediction_tensor)
+        if self.cues_function is not None:
+            # Compute the cues based on the current prediction tensor:
+            cues = self.cues_function(prediction_tensor)
+        else:
+            cues = prediction_tensor
 
         if verbose:
             print('Cues:')
