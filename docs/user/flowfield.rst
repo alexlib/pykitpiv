@@ -22,6 +22,8 @@ Class: ``FlowField``
 
 .. autofunction:: pykitPIV.flowfield.FlowField.generate_spherical_harmonics_velocity_field
 
+.. autofunction:: pykitPIV.flowfield.FlowField.generate_directionally_divergent_velocity_field
+
 .. autofunction:: pykitPIV.flowfield.FlowField.generate_radial_velocity_field
 
 .. autofunction:: pykitPIV.flowfield.FlowField.generate_potential_velocity_field

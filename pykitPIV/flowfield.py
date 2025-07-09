@@ -17,6 +17,7 @@ _available_velocity_fields = {'constant': 'generate_constant_velocity_field',
                               'checkered': 'generate_checkered_velocity_field',
                               'Chebyshev polynomials': 'generate_chebyshev_velocity_field',
                               'spherical harmonics': 'generate_spherical_harmonics_velocity_field',
+                              'directionally divergent': 'generate_directionally_divergent_velocity_field',
                               'radial': 'generate_radial_velocity_field',
                               'potential': 'generate_potential_velocity_field',
                               'taylor green vortex': 'generate_taylor_green_vortex_velocity_field',
@@ -1062,6 +1063,136 @@ class FlowField:
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def generate_directionally_divergent_velocity_field(self,
+                                                        direction='x',
+                                                        source=True,
+                                                        imposed_origin=(0, 0),
+                                                        displacement=(1, 4)):
+        """
+        Generates a velocity field that has non-zero derivative in only the selected direction(s).
+        The non-zero components of the velocity field have the form:
+
+        .. math::
+
+            u(h, w) = (w - w_o)^2 (h - h_o)
+
+        .. math::
+
+            v(h, w) = (h - h_o)^2 (w - w_o)
+
+        where :math:`(h_o, w_o)` is the origin location on the PIV image.
+
+        This flow can control the direction that contributes to the divergence.
+
+        **Example:**
+
+        .. code:: python
+
+            from pykitPIV import FlowField
+
+            # We are going to generate 10 flow fields for 10 PIV image pairs:
+            n_images = 10
+
+            # Specify size in pixels for each image:
+            image_size = (128, 512)
+
+            # Initialize a flow field object:
+            flowfield = FlowField(n_images=n_images,
+                                  size=image_size,
+                                  size_buffer=10,
+                                  time_separation=1,
+                                  random_seed=100)
+
+            # Generate a potential velocity field:
+            flowfield.generate_directionally_divergent_velocity_field(direction='x',
+                                                                      source=True,
+                                                                      imposed_origin=None,
+                                                                      displacement=(2, 2))
+
+            # Access the velocity components tensor:
+            flowfield.velocity_field
+
+            # Access the velocity field magnitude:
+            flowfield.velocity_field_magnitude
+
+        :param direction: (optional)
+            ``str`` specifying the direction where there is a non-zero velocity field. It can be ``'x'`` or  ``'y'``
+            or ``'both'``.
+        :param source: (optional)
+            ``bool`` specifying generation of the source (``True``) or sink (``False``).
+        :param imposed_origin: (optional)
+            ``tuple`` specifying the user-imposed origin location, :math:`(h_o, w_o)`.
+            Note that you need to account for the buffer size when specifying the values :math:`(h_o, w_o)`.
+            If set to ``None``, the origin location will be randomized in each image.
+        :param displacement: (optional)
+            ``tuple`` of two numerical elements specifying the minimum (first element) and maximum (second element)
+            displacement.
+       """
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        # Input parameter check:
+
+        if imposed_origin is not None:
+            check_two_element_tuple(imposed_origin, 'imposed_origin')
+
+        check_two_element_tuple(displacement, 'displacement')
+        check_min_max_tuple(displacement, 'displacement')
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        self.__displacement = displacement
+        self.__displacement_per_image = np.random.rand(self.__n_images) * (self.__displacement[1] - self.__displacement[0]) + self.__displacement[0]
+
+        self.__velocity_field = np.zeros((self.__n_images, 2, self.size_with_buffer[0], self.size_with_buffer[1]), dtype=self.dtype)
+        self.__velocity_field_magnitude = np.zeros((self.__n_images, 1, self.size_with_buffer[0], self.size_with_buffer[1]), dtype=self.dtype)
+
+        h = np.linspace(0, self.size_with_buffer[0], self.size_with_buffer[0])
+        w = np.linspace(0, self.size_with_buffer[1], self.size_with_buffer[1])
+
+        (grid_w, grid_h) = np.meshgrid(w, h)
+
+        if imposed_origin is not None:
+            origin_h, origin_w = imposed_origin
+
+        for i in range(0, self.n_images):
+
+            if imposed_origin is None:
+                origin_h = np.random.rand(1) * (self.size_with_buffer[0] - 1)
+                origin_w = np.random.rand(1) * (self.size_with_buffer[1] - 1)
+
+            # Vector from source to each point:
+            dx = grid_w - origin_w
+            dy = grid_h - origin_h
+
+            # Directionally divergent flow:
+            if direction == 'x':
+                velocity_field_u = dx ** 2 * dy
+                velocity_field_v = dy * 0.0
+            elif direction == 'y':
+                velocity_field_u = dx * 0.0
+                velocity_field_v = dy ** 2 * dx
+            elif direction == 'both':
+                velocity_field_u = dx ** 2 * dy
+                velocity_field_v = dy ** 2 * dx
+
+            velocity_magnitude = np.sqrt(velocity_field_u ** 2 + velocity_field_v ** 2)
+            velocity_magnitude_scale = self.__displacement_per_image[i] / np.max(velocity_magnitude)
+
+            velocity_field_u = velocity_magnitude_scale * velocity_field_u
+            velocity_field_v = velocity_magnitude_scale * velocity_field_v
+
+            self.__velocity_field_magnitude[i, 0, :, :] = np.sqrt(velocity_field_u ** 2 + velocity_field_v ** 2)
+
+            if source:
+                self.__velocity_field[i, 0, :, :] = velocity_field_u
+                self.__velocity_field[i, 1, :, :] = velocity_field_v
+            else:
+                self.__velocity_field[i, 0, :, :] = -velocity_field_u
+                self.__velocity_field[i, 1, :, :] = -velocity_field_v
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     def generate_radial_velocity_field(self,
                                        source=True,
                                        displacement=(1, 4),
@@ -1074,11 +1205,11 @@ class FlowField:
 
         .. math::
 
-            u(h, w) = \\Big( 1 - \\exp{ \\big( \\frac{-r^2}{2 \\sigma^2} \\big)} \\Big) \\frac{(w - w_s)}{r + \\varepsilon}
+            u(h, w) = \\Big( 1 - \\exp{ \\big( \\frac{-r^2}{2 \\sigma_1^2} \\big)} \\Big) \\frac{(w - w_s)}{r + \\varepsilon}
 
         .. math::
 
-            v(h, w) = \\Big( 1 - \\exp{ \\big( \\frac{-r^2}{2 \\sigma^2} \\big)} \\Big) \\frac{(h - h_s)}{r + \\varepsilon}
+            v(h, w) = \\Big( 1 - \\exp{ \\big( \\frac{-r^2}{2 \\sigma_2^2} \\big)} \\Big) \\frac{(h - h_s)}{r + \\varepsilon}
 
         where :math:`\\sigma` is the size of source/sink, :math:`r` is the radial distance from the source/sink computed as:
 
@@ -1131,7 +1262,9 @@ class FlowField:
             ``tuple`` specifying the user-imposed source location, :math:`(h_s, w_s)`.
             Note that you need to account for the buffer size when specifying the values :math:`(h_s, w_s)`.
         :param sigma: (optional)
-            ``int`` or ``float`` specifying the size of the source/sink, :math:`\\sigma`.
+            ```int`` or ``float`` or ``tuple`` of two ```int`` or ``float`` specifying the size of the
+            source/sink in each direction,
+            :math:`\\sigma_1` and :math:`\\sigma_2`.
         :param epsilon: (optional)
             ``float`` specifying the :math:`\\varepsilon`.
        """
@@ -1141,6 +1274,9 @@ class FlowField:
         # Input parameter check:
         check_two_element_tuple(displacement, 'displacement')
         check_min_max_tuple(displacement, 'displacement')
+
+        if isinstance(sigma, int) or isinstance(sigma, float):
+            sigma = (sigma, sigma)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1171,10 +1307,11 @@ class FlowField:
             # Radial distance:
             r = np.sqrt(dx ** 2 + dy ** 2)
 
-            outflow_magnitude = 1.0 - np.exp(- (r ** 2) / (2.0 * sigma ** 2))
+            outflow_magnitude_u = 1.0 - np.exp(- (r ** 2) / (2.0 * sigma[0] ** 2))
+            outflow_magnitude_v = 1.0 - np.exp(- (r ** 2) / (2.0 * sigma[1] ** 2))
 
-            velocity_field_u = outflow_magnitude * dx / (r + epsilon)
-            velocity_field_v = outflow_magnitude * dy / (r + epsilon)
+            velocity_field_u = outflow_magnitude_u * dx / (r + epsilon)
+            velocity_field_v = outflow_magnitude_v * dy / (r + epsilon)
 
             velocity_magnitude = np.sqrt(velocity_field_u ** 2 + velocity_field_v ** 2)
             velocity_magnitude_scale = self.__displacement_per_image[i] / np.max(velocity_magnitude)
@@ -1317,6 +1454,7 @@ class FlowField:
 
             v(h, w) = - \\cos(k (w - w_o)) \\sin(k (h - h_o))
 
+        where :math:`(h_o, w_o)` is the origin location on the PIV image and :math:`k` is the wavelength that can be
         where :math:`(h_o, w_o)` is the origin location on the PIV image and :math:`k` is the wavelength that can be
         used to adjust the sizes of vortices.
 
