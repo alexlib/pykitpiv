@@ -876,6 +876,19 @@ class PIVEnv(gym.Env):
                                                      sigma=self.__flowfield_spec.radial_sigma,
                                                      epsilon=self.__flowfield_spec.radial_epsilon)
 
+        elif self.__flowfield_type == 'directionally divergent':
+
+            directions = self.__flowfield_spec.directionally_divergent_directions
+            direction = directions[np.random.randint(0,len(directions))]
+
+            sources = self.__flowfield_spec.directionally_divergent_sources
+            source = sources[np.random.randint(0,len(sources))]
+
+            flowfield.generate_directionally_divergent_velocity_field(direction=direction,
+                                                                      source=source,
+                                                                      imposed_origin=self.__flowfield_spec.directionally_divergent_imposed_origin,
+                                                                      displacement=self.__flowfield_spec.displacement)
+
         elif self.__flowfield_type == 'constant':
 
             flowfield.generate_constant_velocity_field(u_magnitude=self.__flowfield_spec.constant_u_magnitude,

@@ -67,6 +67,9 @@ class FlowFieldSpecs:
                  radial_imposed_source_location=None,
                  radial_sigma=20,
                  radial_epsilon=1e-6,
+                 directionally_divergent_imposed_origin=(0, 0),
+                 directionally_divergent_directions=['x', 'y', 'both'],
+                 directionally_divergent_sources=[True, False],
                  taylor_green_k=1,
                  imposed_origin=(0, 0),
                  apply_SLM=False,
@@ -91,6 +94,9 @@ class FlowFieldSpecs:
         self.radial_imposed_source_location = radial_imposed_source_location
         self.radial_sigma = radial_sigma
         self.radial_epsilon = radial_epsilon
+        self.directionally_divergent_imposed_origin = directionally_divergent_imposed_origin
+        self.directionally_divergent_directions = directionally_divergent_directions
+        self.directionally_divergent_sources = directionally_divergent_sources
         self.taylor_green_k = taylor_green_k
         self.imposed_origin = imposed_origin
         self.apply_SLM = apply_SLM
@@ -117,6 +123,9 @@ class FlowFieldSpecs:
                 f"radial_imposed_source_location={self.radial_imposed_source_location},\n"
                 f"radial_sigma={self.radial_sigma},\n"
                 f"radial_epsilon={self.radial_epsilon},\n"
+                f"directionally_divergent_imposed_origin={self.directionally_divergent_imposed_origin},\n"
+                f"directionally_divergent_directions={self.directionally_divergent_directions},\n"
+                f"directionally_divergent_sources={self.directionally_divergent_sources},\n"
                 f"taylor_green_k={self.taylor_green_k},\n"
                 f"imposed_origin={self.imposed_origin},\n"
                 f"apply_SLM={self.apply_SLM},\n"
