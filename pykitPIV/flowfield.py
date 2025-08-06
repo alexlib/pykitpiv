@@ -2159,7 +2159,7 @@ def compute_rate_of_strain_tensor(vector_field,
         # Extract the velocity field components:
         velocity_field = flowfield.velocity_field
 
-        # Compute the divergence of the velocity field:
+        # Compute the components of the rate-of-strain tensor:
         S_11, S_22, S_12 = compute_rate_of_strain_tensor(vector_field=velocity_field,
                                                          edge_order=1)
 
@@ -2255,7 +2255,7 @@ def compute_rate_of_rotation_tensor(vector_field,
         # Extract the velocity field components:
         velocity_field = flowfield.velocity_field
 
-        # Compute the divergence of the velocity field:
+        # Compute the components of the rate-of-rotation (vorticity) tensor:
         omega_12, omega_21 = compute_rate_of_rotation_tensor(vector_field=velocity_field,
                                                              edge_order=1)
 
