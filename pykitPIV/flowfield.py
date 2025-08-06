@@ -2105,19 +2105,209 @@ def compute_vorticity(vector_field,
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-def compute_q_criterion(vector_field,
-                        edge_order=1):
+def compute_rate_of_strain_tensor(vector_field,
+                                  edge_order=1):
     """
-    Computes the Q-criterion for the specified vector field, :math:`\\vec{V} = [u, v]`.
+    Computes the components of the rate-of-strain tensor of the specified vector field.
 
-    The Q-criterion comes from decomposing the velocity gradient into the rate of strain tensor and the vorticity tensor:
+    If the vector field is the velocity field, :math:`\\vec{V} = [u, v]`,
+    the velocity gradient can be decomposed into the rate-of-strain tensor and the rate-of-rotation (vorticity) tensor:
 
     .. math::
 
         \\nabla \\vec{V} = \\mathbf{S} + \\pmb{\\Omega}
 
     where :math:`\\mathbf{S} = \\frac{1}{2} [ (\\nabla \\vec{V}) + (\\nabla \\vec{V})^{\\top}]` is the rate-of-strain tensor
-    and :math:`\\pmb{\\Omega} = \\frac{1}{2} [ (\\nabla \\vec{V}) - (\\nabla \\vec{V})^{\\top}]` is the vorticity tensor.
+    and :math:`\\pmb{\\Omega} = \\frac{1}{2} [ (\\nabla \\vec{V}) - (\\nabla \\vec{V})^{\\top}]` is the rate-of-rotation (vorticity) tensor.
+
+    The components of the rate-of-strain tensor are computed as
+
+    .. math::
+
+        \\mathbf{S} =
+        \\begin{bmatrix}
+        S_{11} & S_{12} \\\\
+        S_{21} & S_{22}
+        \\end{bmatrix} =
+        \\begin{bmatrix}
+        \\frac{\\partial u}{\\partial x} & \\frac{1}{2} \\left( \\frac{\\partial v}{\\partial x} + \\frac{\\partial u}{\\partial y} \\right) \\\\
+        \\frac{1}{2} \\left( \\frac{\\partial u}{\\partial y} + \\frac{\\partial v}{\\partial x} \\right) & \\frac{\\partial v}{\\partial y}
+        \\end{bmatrix}
+
+    .. note::
+
+        Derivatives are computed using `numpy.gradient <https://numpy.org/doc/stable/reference/generated/numpy.gradient.html>`_.
+
+    **Example:**
+
+    .. code:: python
+
+        from pykitPIV import FlowField, compute_rate_of_strain_tensor
+
+        # Initialize a flow field object:
+        flowfield = FlowField(10,
+                              size=(200, 200),
+                              size_buffer=0,
+                              time_separation=1,
+                              random_seed=100)
+
+        # Generate random velocity field:
+        flowfield.generate_random_velocity_field(gaussian_filters=(10, 11),
+                                                 n_gaussian_filter_iter=20,
+                                                 displacement=(1, 2))
+
+        # Extract the velocity field components:
+        velocity_field = flowfield.velocity_field
+
+        # Compute the divergence of the velocity field:
+        S_11, S_22, S_12 = compute_rate_of_strain_tensor(vector_field=velocity_field,
+                                                         edge_order=1)
+
+    :param vector_field:
+        ``numpy.ndarray`` specifying the vector field components. It should be of size :math:`(N, 2, H, W)`,
+        where :math:`N` is the number of PIV image pairs, :math:`2` refers to each vector field component and
+        :math:`H` is the height and :math:`W` is the width of each PIV image.
+        For example, it can be the velocity field with components :math:`u` and :math:`v`, or
+        the displacement field with components :math:`dx` and :math:`dy`.
+    :param edge_order: (optional)
+        ``int`` specifying the order for the gradient computation at image boundaries
+        as per `numpy.gradient <https://numpy.org/doc/stable/reference/generated/numpy.gradient.html>`_.
+
+    :return:
+        - **S_11** - the :math:`S_{11}` component of the rate-of-strain tensor.
+          It has size :math:`(N, H, W)`.
+        - **S_22** - the :math:`S_{22}` component of the rate-of-strain tensor.
+          It has size :math:`(N, H, W)`.
+        - **S_12** - the :math:`S_{12}` (equal to :math:`S_{21}`) component of the rate-of-strain tensor.
+          It has size :math:`(N, H, W)`.
+    """
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Input parameter check:
+
+    check_four_dimensional_2D_vector_field_tensor(vector_field, 'vector_field')
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    (dudy, dudx) = np.gradient(vector_field[:,0,:,:], axis=(1,2), edge_order=edge_order)
+    (dvdy, dvdx) = np.gradient(vector_field[:,1,:,:], axis=(1,2), edge_order=edge_order)
+
+    S_11 = dudx
+    S_22 = dvdy
+    S_12 = 0.5 * (dvdx + dudy)
+
+    return S_11, S_22, S_12
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def compute_rate_of_rotation_tensor(vector_field,
+                                    edge_order=1):
+    """
+    Computes the components of the rate-of-rotation (vorticity) tensor of the specified vector field.
+
+    If the vector field is the velocity field, :math:`\\vec{V} = [u, v]`,
+    the velocity gradient can be decomposed into the rate-of-strain tensor and the rate-of-rotation (vorticity) tensor:
+
+    .. math::
+
+        \\nabla \\vec{V} = \\mathbf{S} + \\pmb{\\Omega}
+
+    where :math:`\\mathbf{S} = \\frac{1}{2} [ (\\nabla \\vec{V}) + (\\nabla \\vec{V})^{\\top}]` is the rate-of-strain tensor
+    and :math:`\\pmb{\\Omega} = \\frac{1}{2} [ (\\nabla \\vec{V}) - (\\nabla \\vec{V})^{\\top}]` is the rate-of-rotation (vorticity) tensor.
+
+    The components of the rate-of-rotation (vorticity) tensor are computed as
+
+    .. math::
+
+        \\pmb{\\Omega} =
+        \\begin{bmatrix}
+        \\omega_{11} & \\omega_{12} \\\\
+        \\omega_{21} & \\omega_{22}
+        \\end{bmatrix} =
+        \\begin{bmatrix}
+        0 & \\frac{1}{2} \\left( \\frac{\\partial v}{\\partial x} - \\frac{\\partial u}{\\partial y} \\right) \\\\
+        \\frac{1}{2} \\left( \\frac{\\partial u}{\\partial y} - \\frac{\\partial v}{\\partial x} \\right) & 0
+        \\end{bmatrix}
+
+    .. note::
+
+        Derivatives are computed using `numpy.gradient <https://numpy.org/doc/stable/reference/generated/numpy.gradient.html>`_.
+
+    **Example:**
+
+    .. code:: python
+
+        from pykitPIV import FlowField, compute_rate_of_rotation_tensor
+
+        # Initialize a flow field object:
+        flowfield = FlowField(10,
+                              size=(200, 200),
+                              size_buffer=0,
+                              time_separation=1,
+                              random_seed=100)
+
+        # Generate random velocity field:
+        flowfield.generate_random_velocity_field(gaussian_filters=(10, 11),
+                                                 n_gaussian_filter_iter=20,
+                                                 displacement=(1, 2))
+
+        # Extract the velocity field components:
+        velocity_field = flowfield.velocity_field
+
+        # Compute the divergence of the velocity field:
+        omega_12, omega_21 = compute_rate_of_rotation_tensor(vector_field=velocity_field,
+                                                             edge_order=1)
+
+    :param vector_field:
+        ``numpy.ndarray`` specifying the vector field components. It should be of size :math:`(N, 2, H, W)`,
+        where :math:`N` is the number of PIV image pairs, :math:`2` refers to each vector field component and
+        :math:`H` is the height and :math:`W` is the width of each PIV image.
+        For example, it can be the velocity field with components :math:`u` and :math:`v`, or
+        the displacement field with components :math:`dx` and :math:`dy`.
+    :param edge_order: (optional)
+        ``int`` specifying the order for the gradient computation at image boundaries
+        as per `numpy.gradient <https://numpy.org/doc/stable/reference/generated/numpy.gradient.html>`_.
+
+    :return:
+        - **omega_12** - the :math:`\\omega_{12}` component of the rate-of-rotation (vorticity) tensor.
+          It has size :math:`(N, H, W)`.
+        - **omega_21** - the :math:`\\omega_{21}` component of the rate-of-rotation (vorticity) tensor.
+          It has size :math:`(N, H, W)`.
+    """
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Input parameter check:
+
+    check_four_dimensional_2D_vector_field_tensor(vector_field, 'vector_field')
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    (dudy, dudx) = np.gradient(vector_field[:,0,:,:], axis=(1,2), edge_order=edge_order)
+    (dvdy, dvdx) = np.gradient(vector_field[:,1,:,:], axis=(1,2), edge_order=edge_order)
+
+    omega_12 = 0.5 * (dvdx - dudy)
+    omega_21 = 0.5 * (dudy - dvdx)
+
+    return omega_12, omega_21
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def compute_q_criterion(vector_field,
+                        edge_order=1):
+    """
+    Computes the Q-criterion for the specified vector field, :math:`\\vec{V} = [u, v]`.
+
+    The Q-criterion comes from decomposing the velocity gradient into the rate-of-strain tensor
+    and the rate-of-rotation (vorticity) tensor:
+
+    .. math::
+
+        \\nabla \\vec{V} = \\mathbf{S} + \\pmb{\\Omega}
+
+    where :math:`\\mathbf{S} = \\frac{1}{2} [ (\\nabla \\vec{V}) + (\\nabla \\vec{V})^{\\top}]` is the rate-of-strain tensor
+    and :math:`\\pmb{\\Omega} = \\frac{1}{2} [ (\\nabla \\vec{V}) - (\\nabla \\vec{V})^{\\top}]` is the rate-of-rotation (vorticity) tensor.
 
     The Q-criterion is defined as regions where the vorticity tensor magnitude dominates over the strain rate tensor magnitude:
 
@@ -2127,7 +2317,7 @@ def compute_q_criterion(vector_field,
 
     where :math:`\\| \\bullet \\|` is the Euclidean (or Frobenius) norm.
 
-    In 2D, the vorticity tensor is
+    In 2D, the rate-of-rotation (vorticity) tensor is
 
     .. math::
 

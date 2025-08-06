@@ -44,4 +44,8 @@ Flow field utilities
 
 .. autofunction:: pykitPIV.flowfield.compute_vorticity
 
+.. autofunction:: pykitPIV.flowfield.compute_rate_of_strain_tensor
+
+.. autofunction:: pykitPIV.flowfield.compute_rate_of_rotation_tensor
+
 .. autofunction:: pykitPIV.flowfield.compute_q_criterion
