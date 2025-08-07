@@ -2,6 +2,13 @@
 A gallery of examples
 ######################################
 
+Virtual PIV of a Taylor-Green vortex
+==================================================================
+
+.. image:: ../images/animate-taylor-green-vortex-PIV.gif
+    :width: 700
+    :align: center
+
 Virtual PIV with a compressible/incompressible flow
 ==================================================================
 
