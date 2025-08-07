@@ -34,6 +34,8 @@ Class: ``Image``
 
 .. autofunction:: pykitPIV.image.Image.concatenate_tensors
 
+.. autofunction:: pykitPIV.image.Image.save_to_tiff
+
 .. autofunction:: pykitPIV.image.Image.save_to_h5
 
 .. autofunction:: pykitPIV.image.Image.upload_from_h5

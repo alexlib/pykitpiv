@@ -1322,6 +1322,148 @@ class Image:
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def save_to_tiff(self,
+                     image_tensor,
+                     filename=None,
+                     verbose=False):
+        """
+        Saves the image pairs tensor to individual ``.tiff`` images.
+
+        **Example:**
+
+        .. code:: python
+
+            from pykitPIV import Particle, FlowField, Motion, Image
+
+            # We are going to generate 10 PIV image pairs:
+            n_images = 10
+
+            # Specify size in pixels for each image:
+            image_size = (128, 512)
+
+            # Initialize a particle object:
+            particles = Particle(n_images=n_images,
+                                 size=image_size,
+                                 size_buffer=10,
+                                 diameters=(2, 4),
+                                 distances=(1, 2),
+                                 densities=(0.01, 0.05),
+                                 diameter_std=(0.1, 1),
+                                 seeding_mode='random',
+                                 random_seed=100)
+
+            # Initialize a flow field object:
+            flowfield = FlowField(n_images=n_images,
+                                  size=image_size,
+                                  size_buffer=10,
+                                  time_separation=1,
+                                  random_seed=100)
+
+            # Generate random velocity field:
+            flowfield.generate_random_velocity_field(gaussian_filters=(2, 10),
+                                                     n_gaussian_filter_iter=10,
+                                                     displacement=(2, 5))
+
+            # Initialize a motion object:
+            motion = Motion(particles,
+                            flowfield,
+                            particle_loss=(0, 2),
+                            particle_gain='matching',
+                            verbose=False,
+                            random_seed=None)
+
+            # Advect particles:
+            motion.forward_euler(n_steps=10)
+
+            # Initialize an image object:
+            image = Image(random_seed=100)
+
+            # Add particles to an image:
+            image.add_particles(particles)
+
+            # Add flow field to an image:
+            image.add_flowfield(flowfield)
+
+            # Add motion to an image:
+            image.add_motion(motion)
+
+            # Add reflected light to an image:
+            image.add_reflected_light(exposures=(0.5, 0.9),
+                                      maximum_intensity=2**16-1,
+                                      laser_beam_thickness=1,
+                                      laser_over_exposure=1,
+                                      laser_beam_shape=0.95,
+                                      alpha=1/8,
+                                      covariance_matrix=None,
+                                      clip_intensities=True,
+                                      normalize_intensities=False)
+
+            # Remove buffers from images:
+            images_I1 = image.remove_buffers(image.images_I1)
+            images_I2 = image.remove_buffers(image.images_I2)
+
+            # Prepare an image pairs tensor to save:
+            images_intensities = image.concatenate_tensors((images_I1, images_I2))
+
+            # Save images to .tiff:
+            image.save_to_tiff(images_intensities,
+                               filename='dataset',
+                               verbose=True)
+
+        :param image_tensor:
+            ``numpy.ndarray`` specifying the image pairs tensor to save. It should be of size :math:`(N, 2, H, W)`.
+        :param filename: (optional)
+            ``str`` specifying the path and filename to save the ``.tiff`` images.
+            Note that ``'-#-I1'`` or ``'-#-I2'`` will be added
+            automatically to your filename for each saved image.
+            If set to ``None``, a default name ``'PIV-dataset-#-I1.tiff'`` or ``'PIV-dataset-#-I2.tiff'`` will be used.
+        :param verbose: (optional)
+            ``bool`` for printing verbose details.
+        """
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        from PIL import Image as PILImage
+
+        # Input parameter check:
+
+        if not isinstance(image_tensor, np.ndarray):
+            raise ValueError("Parameter `image_tensor` has to be of type 'numpy.ndarray'.")
+
+        if (filename is not None) and (not isinstance(filename, str)):
+            raise ValueError("Parameter `filename` has to be of type 'str'.")
+
+        if filename is None:
+            filename = 'PIV-dataset'
+
+        if not isinstance(verbose, bool):
+            raise ValueError("Parameter `verbose` has to be of type 'bool'.")
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        for i in range(image_tensor.shape[0]):
+
+            img1 = image_tensor[i, 0]
+            img2 = image_tensor[i, 1]
+
+            # Normalize the image so that intensity values are between 0 and 255:
+            img1 = img1 / np.max(img1)
+            img1 = (img1 * 255).astype(np.uint8)
+
+            img2 = img2 / np.max(img2)
+            img2 = (img2 * 255).astype(np.uint8)
+
+            # Save grayscale image to .tiff:
+            image_to_save = PILImage.fromarray(img1, mode='L')
+            image_to_save.save(filename + '-' + str(i) + '-I1.tiff')
+
+            image_to_save = PILImage.fromarray(img2, mode='L')
+            image_to_save.save(filename + '-' + str(i) + '-I2.tiff')
+
+        if verbose: print('Images saved.')
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     def save_to_h5(self,
                    tensors_dictionary,
                    save_individually=False,
