@@ -1489,9 +1489,9 @@ class FlowField:
                                   random_seed=100)
 
             # Generate a Taylor-Green vortex velocity field:
-            flowfield.generate_potential_velocity_field(k=0.01,
-                                                        imposed_origin=None,
-                                                        displacement=(2, 2))
+            flowfield.generate_taylor_green_vortex_velocity_field(k=0.01,
+                                                                  imposed_origin=None,
+                                                                  displacement=(2, 2))
 
             # Access the velocity components tensor:
             flowfield.velocity_field
