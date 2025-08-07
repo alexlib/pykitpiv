@@ -1335,11 +1335,11 @@ class Image:
 
             from pykitPIV import Particle, FlowField, Motion, Image
 
-            # We are going to generate 10 PIV image pairs:
-            n_images = 10
+            # We are going to generate 4 PIV image pairs:
+            n_images = 4
 
             # Specify size in pixels for each image:
-            image_size = (128, 512)
+            image_size = (256, 256)
 
             # Initialize a particle object:
             particles = Particle(n_images=n_images,
