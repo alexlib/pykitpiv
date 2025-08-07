@@ -41,3 +41,5 @@
 ### [`20`: Create a `TensorFlow` or `Keras` data loader for **pykitPIV**-generated images](demo-pykitPIV-20-TensorFlow-dataloader.ipynb)
 
 ### [`21`: Train a convolutional variational autoencoder](demo-pykitPIV-21-convolutional-variational-autoencoder.ipynb)
+
+### [`22`: Generate Taylor-Green vortex](demo-pykitPIV-22-Taylor-Green-vortex.ipynb)
