@@ -35,6 +35,7 @@ Install requirements:
     pip install keras==3.8.0
     pip install gymnasium
     pip install tqdm
+    pip install pillow
 
 Additional requirements for Jupyter notebook tutorials:
 
