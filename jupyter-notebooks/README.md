@@ -43,3 +43,5 @@
 ### [`21`: Train a convolutional variational autoencoder](demo-pykitPIV-21-convolutional-variational-autoencoder.ipynb)
 
 ### [`22`: Generate Taylor-Green vortex](demo-pykitPIV-22-Taylor-Green-vortex.ipynb)
+
+### [`23`: Train convolutional reinforcement learning to detect sources and sinks](demo-pykitPIV-23-SingleDQCNN-RL-find-sources-and-sinks.ipynb)
