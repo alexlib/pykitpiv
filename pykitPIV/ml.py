@@ -1604,7 +1604,7 @@ class CameraAgentSingleDQN:
 
     .. math::
 
-        \\text{action} = \\pi(\\text{cues} )
+        \\text{action} = \\pi( \\text{cues} )
 
     and where :math:`\\pi` is the trained DNN model.
 
@@ -1658,6 +1658,9 @@ class CameraAgentSingleDQN:
         ``str`` specifying the gradient descent optimizer to use. It can be ``'Adam'`` or ``'RMSprop'``.
     :param discount_factor:  (optional)
         ``float`` specifying the discount factor, :math:`\gamma`.
+    :param random_seed: (optional)
+        ``int`` specifying the random seed for random number generation in ``numpy``.
+        If specified, all operations are reproducible.
     """
 
     def __init__(self,
@@ -1665,7 +1668,20 @@ class CameraAgentSingleDQN:
                  q_network,
                  learning_rate=0.0001,
                  optimizer='RMSprop',
-                 discount_factor=0.95):
+                 discount_factor=0.95,
+                 random_seed=None):
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        # Input parameter check:
+
+        if random_seed is not None:
+            if type(random_seed) != int:
+                raise ValueError("Parameter `random_seed` has to be of type 'int'.")
+            else:
+                np.random.seed(seed=random_seed)
+                tf.random.set_seed(random_seed)
+                tf.keras.utils.set_random_seed(random_seed)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1945,6 +1961,9 @@ class CameraAgentDoubleDQN:
         ``str`` specifying the gradient descent optimizer to use. It can be ``'Adam'`` or ``'RMSprop'``.
     :param discount_factor:  (optional)
         ``float`` specifying the discount factor, :math:`\gamma`.
+    :param random_seed: (optional)
+        ``int`` specifying the random seed for random number generation in ``numpy``.
+        If specified, all operations are reproducible.
     """
 
     def __init__(self,
@@ -1956,7 +1975,20 @@ class CameraAgentDoubleDQN:
                  n_epochs=100,
                  learning_rate=0.0001,
                  optimizer='RMSprop',
-                 discount_factor=0.95):
+                 discount_factor=0.95,
+                 random_seed=None):
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        # Input parameter check:
+
+        if random_seed is not None:
+            if type(random_seed) != int:
+                raise ValueError("Parameter `random_seed` has to be of type 'int'.")
+            else:
+                np.random.seed(seed=random_seed)
+                tf.random.set_seed(random_seed)
+                tf.keras.utils.set_random_seed(random_seed)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
