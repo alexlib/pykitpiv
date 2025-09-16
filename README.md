@@ -51,17 +51,17 @@ Documentation at ReadTheDocs can be found [here](https://pykitpiv.readthedocs.io
 
 ## Citing pykitPIV
 
-If you use **pykitPIV** in your work, we will appreciate the citation to the following paper:
+If you use **pykitPIV** in your work, we will appreciate the citation to [the following paper](https://www.sciencedirect.com/science/article/pii/S235271102500322X):
 
 ```text
 @article{pykitPIV2025,
 title = "pykitPIV: A framework for flexible and reproducible virtual training of machine learning models in optical velocimetry",
 journal = "SoftwareX",
-volume = "",
-pages = "",
+volume = "31",
+pages = "102356",
 year = "2025",
-issn = "",
-doi = "",
+issn = "2352-7110",
+doi = "https://doi.org/10.1016/j.softx.2025.102356",
 url = "https://github.com/kamilazdybal/pykitPIV",
 author = "Zdybał, K. and Mucignat, C. and Lunati, I."
 }
