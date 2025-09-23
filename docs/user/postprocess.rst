@@ -6,7 +6,7 @@ Class: ``Postprocess``
 
 .. autoclass:: pykitPIV.postprocess.Postprocess
 
-.. autofunction:: pykitPIV.image.Image.add_defocus
+.. autofunction:: pykitPIV.postprocess.Postprocess.add_defocus
 
 .. autofunction:: pykitPIV.postprocess.Postprocess.add_gaussian_noise
 
