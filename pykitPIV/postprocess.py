@@ -135,6 +135,115 @@ class Postprocess:
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def add_defocus(self,
+                    grid_size=256,
+                    pupil_radius_px=72,
+                    defocus_waves=1.0,
+                    spherical_waves=0.0):
+        """
+        Adds defocus to the image tensor or any image-like array of size :math:`(N, H, W)`
+        using the point spread function (PSF).
+
+        The input image tensor should come from a perfect focus scenario (minimum Gaussian blur)
+        for accurate approximation of the defocus.
+
+        Here's an example synthetic defocused PIV image with Gaussian noise added:
+
+        .. image:: ../images/postprocess_add_defocus.png
+            :width: 500
+
+        **Example:**
+
+        .. code:: python
+
+            from pykitPIV import Image, Postprocess
+
+            # Upload saved images:
+            image = Image()
+            images_tensor_dic = image.upload_from_h5(filename='pykitPIV-dataset.h5')
+            images_tensor = images_tensor_dic['I']
+
+            # Initialize a postprocessing object:
+            postprocess = Postprocess(image_tensor, random_seed=100)
+
+            # Add defocus to the uploaded images:
+            postprocess.add_defocus(grid_size=256,
+                                    pupil_radius_px=72,
+                                    defocus_waves=1.0,
+                                    spherical_waves=0.0)
+
+        :param grid_size: (optional)
+            ``int`` or ``float`` specifying the grid size in pixels for the FFT.
+        :param pupil_radius_px: (optional)
+        :param defocus_waves: (optional)
+            ``int`` or ``float`` specifying the defocus waves.
+        :param spherical_waves: (optional)
+            ``int`` or ``float`` specifying the spherical waves.
+        """
+
+        from numpy.fft import fft2, ifft2, fftshift, ifftshift
+
+        # Create a particle spread function (PSF) kernel:
+        yy, xx = np.indices((grid_size, grid_size), dtype=np.float32)
+        cy = (grid_size - 1) / 2
+        cx = (grid_size - 1) / 2
+        r = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+        R = pupil_radius_px
+
+        pupil = (r <= R).astype(np.float32)
+        rho = np.zeros_like(r, dtype=np.float32)
+        m = pupil > 0
+        rho[m] = r[m] / R
+
+        phase = np.zeros_like(r, dtype=np.float32)
+        phase[m] = 2 * np.pi * (defocus_waves * rho[m] ** 2 + spherical_waves * rho[m] ** 4)
+
+        pupil_field = pupil * np.exp(1j * phase)
+        E = fftshift(fft2(ifftshift(pupil_field)))
+        particle_spread_function_kernel = np.abs(E) ** 2
+        particle_spread_function_kernel /= particle_spread_function_kernel.sum() + 1e-12
+
+        # Convolve the image with the PSF:
+        ph, pw = particle_spread_function_kernel.shape
+
+        n_images = self.image_tensor.shape[0]
+        image_height = self.image_tensor.shape[-2]
+        image_width = self.image_tensor.shape[-1]
+
+        if image_height >= ph:
+            top = (image_height - ph) // 2
+            bot = image_height - ph - top
+            particle_spread_function_kernel = np.pad(particle_spread_function_kernel, ((top, bot), (0, 0)), mode='constant')
+        else:
+            start = (ph - image_height) // 2
+            particle_spread_function_kernel = particle_spread_function_kernel[start:start + image_height, :]
+
+        ph, pw = particle_spread_function_kernel.shape
+        if image_width >= pw:
+            left = (image_width - pw) // 2
+            right = image_width - pw - left
+            particle_spread_function_kernel = np.pad(particle_spread_function_kernel, ((0, 0), (left, right)), mode='constant')
+        else:
+            start = (pw - image_width) // 2
+            particle_spread_function_kernel = particle_spread_function_kernel[:, start:start + image_width]
+
+        image_tensor_with_defocus = np.zeros_like(self.image_tensor)
+
+        for i in range(0, n_images):
+
+            image_max = np.max(self.image_tensor[i,:,:])
+
+            IMG = fft2(self.image_tensor[i,:,:])
+            PSF = fft2(ifftshift(particle_spread_function_kernel))
+            image_tensor_with_defocus[i,:,:] = np.real(ifft2(IMG * PSF))
+
+            # Re-scale the image back to its original range:
+            image_tensor_with_defocus[i, :, :] = image_tensor_with_defocus[i,:,:] / np.max(image_tensor_with_defocus[i,:,:]) * image_max
+
+        self.__processed_image_tensor = image_tensor_with_defocus
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     def add_gaussian_noise(self,
                            loc=0.0,
                            scale=(500, 1000),
