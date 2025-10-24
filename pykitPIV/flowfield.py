@@ -1553,7 +1553,7 @@ class FlowField:
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def generate_taylor_green_vortex_velocity_field(self,
-                                                    k=0.01,
+                                                    k=(0.01, 0.05),
                                                     imposed_origin=(0, 0),
                                                     displacement=(1, 4)):
         """
@@ -1593,7 +1593,7 @@ class FlowField:
                                   random_seed=100)
 
             # Generate a Taylor-Green vortex velocity field:
-            flowfield.generate_taylor_green_vortex_velocity_field(k=0.01,
+            flowfield.generate_taylor_green_vortex_velocity_field(k=(0.01, 0.05),
                                                                   imposed_origin=None,
                                                                   displacement=(2, 2))
 
@@ -1603,8 +1603,9 @@ class FlowField:
             # Access the velocity field magnitude:
             flowfield.velocity_field_magnitude
 
-        :param k: (optional)
-            ``float`` or ``int`` specifying the wavelength, :math:`k`.
+        :param k:
+            ``tuple`` of two numerical elements specifying the minimum (first element) and maximum (second element)
+            wavelength, :math:`k`.
         :param imposed_origin: (optional)
             ``tuple`` specifying the user-imposed origin location, :math:`(h_o, w_o)`.
             Note that you need to account for the buffer size when specifying the values :math:`(h_o, w_o)`.
@@ -1626,8 +1627,10 @@ class FlowField:
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+        self.__k = k
         self.__displacement = displacement
         self.__displacement_per_image = np.random.rand(self.__n_images) * (self.__displacement[1] - self.__displacement[0]) + self.__displacement[0]
+        self.__k_per_image = np.random.rand(self.__n_images) * (self.__k[1] - self.__k[0]) + self.__k[0]
 
         self.__velocity_field = np.zeros((self.__n_images, 2, self.size_with_buffer[0], self.size_with_buffer[1]), dtype=self.dtype)
         self.__velocity_field_magnitude = np.zeros((self.__n_images, 1, self.size_with_buffer[0], self.size_with_buffer[1]), dtype=self.dtype)
@@ -1651,8 +1654,8 @@ class FlowField:
             dy = grid_h - origin_h
 
             # Potential flow:
-            velocity_field_u = np.sin(k * dx) * np.cos(k * dy)
-            velocity_field_v = - np.cos(k * dx) * np.sin(k * dy)
+            velocity_field_u = np.sin(self.__k_per_image[i] * dx) * np.cos(self.__k_per_image[i] * dy)
+            velocity_field_v = - np.cos(self.__k_per_image[i] * dx) * np.sin(self.__k_per_image[i] * dy)
 
             velocity_magnitude = np.sqrt(velocity_field_u ** 2 + velocity_field_v ** 2)
             velocity_magnitude_scale = self.__displacement_per_image[i] / np.max(velocity_magnitude)
