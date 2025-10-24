@@ -12,6 +12,8 @@ Class: ``FlowField``
 
 .. autofunction:: pykitPIV.flowfield.FlowField.generate_constant_velocity_field
 
+.. autofunction:: pykitPIV.flowfield.FlowField.generate_shearing_velocity_field
+
 .. autofunction:: pykitPIV.flowfield.FlowField.generate_random_velocity_field
 
 .. autofunction:: pykitPIV.flowfield.FlowField.generate_sinusoidal_velocity_field

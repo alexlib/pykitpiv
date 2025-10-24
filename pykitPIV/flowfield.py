@@ -12,6 +12,7 @@ from pykitPIV.checks import *
 
 # Specify the available velocity fields in this class:
 _available_velocity_fields = {'constant': 'generate_constant_velocity_field',
+                              'shearing': 'generate_shearing_velocity_field',
                               'random smooth': 'generate_random_velocity_field',
                               'sinusoidal': 'generate_sinusoidal_velocity_field',
                               'checkered': 'generate_checkered_velocity_field',
@@ -392,6 +393,9 @@ class FlowField:
             - constant
                 Use function: generate_constant_velocity_field
 
+            - shearing
+                Use function: generate_shearing_velocity_field
+
             - random smooth
                 Use function: generate_random_velocity_field
 
@@ -497,6 +501,106 @@ class FlowField:
 
             self.__velocity_field[i, 0, :, :] = self.__velocity_field[i, 0, :, :] * self.__u_magnitude_per_image[i]
             self.__velocity_field[i, 1, :, :] = self.__velocity_field[i, 1, :, :] * self.__v_magnitude_per_image[i]
+
+            self.__velocity_field_magnitude[i, 0, :, :] = np.sqrt(self.__velocity_field[i, 0, :, :] ** 2 + self.__velocity_field[i, 1, :, :] ** 2)
+
+        # Compute the updated displacement per image:
+        self.__displacement_per_image = np.max(np.abs(self.__velocity_field_magnitude), axis=(2,3)).ravel()
+
+        # Compute the updated minimum and maximum displacement:
+        self.__displacement = (np.min(self.__displacement_per_image), np.max(self.__displacement_per_image))
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def generate_shearing_velocity_field(self,
+                                      u_magnitude=(1, 4),
+                                      v_magnitude=(1, 4),
+                                      shear_type='linear'):
+        """
+        Generates a shearing flow velocity field.
+
+        **Example:**
+
+        .. code:: python
+
+            from pykitPIV import FlowField
+
+            # We are going to generate 10 flow fields for 10 PIV image pairs:
+            n_images = 10
+
+            # Specify size in pixels for each image:
+            image_size = (128, 128)
+
+            # Initialize a flow field object:
+            flowfield = FlowField(n_images=n_images,
+                                  size=image_size,
+                                  size_buffer=10,
+                                  time_separation=1,
+                                  random_seed=100)
+
+            # Generate a constant velocity field:
+            flowfield.generate_shearing_velocity_field(u_magnitude=(1, 4),
+                                                    v_magnitude=(1, 4),
+                                                    shear_type='linear')
+
+            # Access the velocity components tensor:
+            flowfield.velocity_field
+
+            # Access the velocity field magnitude:
+            flowfield.velocity_field_magnitude
+
+        :param u_magnitude: (optional)
+            ``tuple`` of two numerical elements specifying the minimum (first element) and maximum (second element)
+            magnitude of the :math:`u` component of velocity.
+        :param v_magnitude: (optional)
+            ``tuple`` of two numerical elements specifying the minimum (first element) and maximum (second element)
+            magnitude of the :math:`v` component of velocity.
+        :param shear_type: (optional)
+            ``str`` specifying the type of shearing. It can be 'linear' or 'quadratic'.
+       """
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        # Input parameter check:
+
+        check_two_element_tuple(u_magnitude, 'u_magnitude')
+        check_min_max_tuple(u_magnitude, 'u_magnitude')
+        check_two_element_tuple(v_magnitude, 'v_magnitude')
+        check_min_max_tuple(v_magnitude, 'v_magnitude')
+
+        __shear_types = ['linear', 'quadratic']
+
+        if shear_type not in __shear_types:
+            raise TypeError("Parameter 'shear_type' must be 'linear' or 'quadratic'.")
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        self.__u_magnitude = u_magnitude
+        self.__v_magnitude = v_magnitude
+
+        self.__velocity_field = np.ones((self.__n_images, 2, self.size_with_buffer[0], self.size_with_buffer[1]), dtype=self.dtype)
+        self.__velocity_field_magnitude = np.zeros((self.__n_images, 1, self.size_with_buffer[0], self.size_with_buffer[1]), dtype=self.dtype)
+
+        self.__u_magnitude_per_image = np.random.rand(self.__n_images) * (self.__u_magnitude[1] - self.__u_magnitude[0]) + self.__u_magnitude[0]
+        self.__v_magnitude_per_image = np.random.rand(self.__n_images) * (self.__v_magnitude[1] - self.__v_magnitude[0]) + self.__v_magnitude[0]
+
+        for i in range(0, self.n_images):
+
+            if shear_type == 'linear':
+                u_profile = np.linspace(0, self.__u_magnitude_per_image[i], self.size_with_buffer[0])
+                v_profile = np.linspace(0, self.__v_magnitude_per_image[i], self.size_with_buffer[1])
+            elif shear_type == 'quadratic':
+                if self.__u_magnitude_per_image[i] != 0:
+                    u_profile = np.linspace(0, self.__u_magnitude_per_image[i], self.size_with_buffer[0]) ** 2 / self.__u_magnitude_per_image[i]
+                else:
+                    u_profile = np.zeros((self.size_with_buffer[0],))
+                if self.__v_magnitude_per_image[i] != 0:
+                    v_profile = np.linspace(0, self.__v_magnitude_per_image[i], self.size_with_buffer[1]) ** 2 / self.__v_magnitude_per_image[i]
+                else:
+                    v_profile = np.zeros((self.size_with_buffer[1],))
+
+            self.__velocity_field[i, 0, :, :] = np.repeat(u_profile[:, None], self.size_with_buffer[1], axis=1)
+            self.__velocity_field[i, 1, :, :] = np.repeat(v_profile[None, :], self.size_with_buffer[0], axis=0)
 
             self.__velocity_field_magnitude[i, 0, :, :] = np.sqrt(self.__velocity_field[i, 0, :, :] ** 2 + self.__velocity_field[i, 1, :, :] ** 2)
 
