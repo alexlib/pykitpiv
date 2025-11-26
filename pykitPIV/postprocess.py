@@ -146,10 +146,10 @@ class Postprocess:
         `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_
         for theory).
 
-        In computing the defocus, we assume that we look at perfect (isotropic) point source object(s).
+        In computing the defocus, we assume that we look at perfect (isotropic) point-source object(s).
         Hence, the input image tensor should come from a perfect focus scenario for accurate simulation of the defocus.
 
-        We first compute the complex pupil function (we assume a circular pupil) for the point source
+        We first compute the complex pupil function (we assume a circular pupil) for the point-source
         and then perform two-dimensional Fourier transform of it to get the defocused and/or aberrated image.
 
         Given the normalized radial distance from the point source:
@@ -159,8 +159,8 @@ class Postprocess:
             \\rho = \\frac{r}{R}
 
         where :math:`R` is the pupil radius, we build the aberration function (see Eq. (3.5) in
-        `Guang-ming Dai - Wavefront Optics for Vision Correction <https://www.spiedigitallibrary.org/ebooks/PM/Wavefront-Optics-for-Vision-Correction/eISBN-9780819478412/10.1117/3.769212>`_
-        ) as:
+        `Guang-ming Dai - Wavefront Optics for Vision Correction <https://www.spiedigitallibrary.org/ebooks/PM/Wavefront-Optics-for-Vision-Correction/eISBN-9780819478412/10.1117/3.769212>`_)
+        as:
 
         .. math::
 
@@ -168,10 +168,10 @@ class Postprocess:
 
         where :math:`d` is the defocus wave and :math:`s` is the spherical wave.
 
-        We then compute the pupil function
+        We then compute the complex pupil function
         (see section 6.4 in
-        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_
-        ) as:
+        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_)
+        as:
 
         .. math::
 
@@ -188,6 +188,8 @@ class Postprocess:
         .. math::
 
             \\text{PSF} = |E(x, y)|^2
+
+        The perfect point-source image is convolved with this kernel to get the final image.
 
         Here's an example synthetic defocused PIV image with Gaussian noise added:
 
@@ -224,6 +226,9 @@ class Postprocess:
         :param spherical_waves: (optional)
             ``int`` or ``float`` specifying the spherical wave, :math:`s`. This adds a term proportional to :math:`\\rho^4`
             across the pupil and hence simulates the spherical aberration.
+
+        :return:
+            - **point_spread_function_kernel** - ``numpy.ndarray`` specifying the point-spread function kernel, :math:` \\text{PSF}`.
         """
 
         from numpy.fft import fft2, ifft2, fftshift, ifftshift
@@ -258,35 +263,37 @@ class Postprocess:
 
         # Create a point-spread function (PSF) kernel:
         E = fftshift(fft2(ifftshift(pupil_function)))
-        particle_spread_function_kernel = np.abs(E) ** 2
-        particle_spread_function_kernel /= particle_spread_function_kernel.sum() + 1e-12
+        point_spread_function_kernel = np.abs(E) ** 2
+
+        # Normalize so that all entries sum to unity:
+        point_spread_function_kernel /= point_spread_function_kernel.sum() + 1e-12
 
         # Convolve the image with the PSF:
-        ph, pw = particle_spread_function_kernel.shape
+        ph, pw = point_spread_function_kernel.shape
 
         if image_height >= ph:
 
             top = (image_height - ph) // 2
             bottom = image_height - ph - top
-            particle_spread_function_kernel = np.pad(particle_spread_function_kernel, ((top, bottom), (0, 0)), mode='constant')
+            point_spread_function_kernel = np.pad(point_spread_function_kernel, ((top, bottom), (0, 0)), mode='constant')
 
         else:
 
             start = (ph - image_height) // 2
-            particle_spread_function_kernel = particle_spread_function_kernel[start:start + image_height, :]
+            point_spread_function_kernel = point_spread_function_kernel[start:start + image_height, :]
 
-        ph, pw = particle_spread_function_kernel.shape
+        ph, pw = point_spread_function_kernel.shape
 
         if image_width >= pw:
 
             left = (image_width - pw) // 2
             right = image_width - pw - left
-            particle_spread_function_kernel = np.pad(particle_spread_function_kernel, ((0, 0), (left, right)), mode='constant')
+            point_spread_function_kernel = np.pad(point_spread_function_kernel, ((0, 0), (left, right)), mode='constant')
 
         else:
 
             start = (pw - image_width) // 2
-            particle_spread_function_kernel = particle_spread_function_kernel[:, start:start + image_width]
+            point_spread_function_kernel = point_spread_function_kernel[:, start:start + image_width]
 
         # Initialize the image tensor:
         image_tensor_with_defocus = np.zeros_like(self.image_tensor)
@@ -300,15 +307,17 @@ class Postprocess:
             image_FFT = fft2(self.image_tensor[i,:,:])
 
             # FFT of the PSF kernel:
-            particle_spread_function_kernel_FFT = fft2(ifftshift(particle_spread_function_kernel))
+            point_spread_function_kernel_FFT = fft2(ifftshift(point_spread_function_kernel))
 
             # Convolve the image FFT with the PSF kernel FFT and run the inverse FFT:
-            image_tensor_with_defocus[i,:,:] = np.real(ifft2(image_FFT * particle_spread_function_kernel_FFT))
+            image_tensor_with_defocus[i,:,:] = np.real(ifft2(image_FFT * point_spread_function_kernel_FFT))
 
             # Re-scale the image back to its original range:
             image_tensor_with_defocus[i, :, :] = image_tensor_with_defocus[i,:,:] / np.max(image_tensor_with_defocus[i,:,:]) * image_max
 
         self.__processed_image_tensor = image_tensor_with_defocus
+
+        return point_spread_function_kernel
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
