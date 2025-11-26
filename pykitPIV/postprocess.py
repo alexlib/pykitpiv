@@ -212,10 +212,10 @@ class Postprocess:
         :param pupil_radius: (optional)
             ``int`` or ``float`` specifying the pupil radius, :math:`R`, in pixels :math:`[\\text{px}]`.
         :param defocus_waves: (optional)
-            ``int`` or ``float`` specifying the defocus wave, :math:`d`. This adds a term proportional to :math:`\rho^2`
+            ``int`` or ``float`` specifying the defocus wave, :math:`d`. This adds a term proportional to :math:`\\rho^2`
             across the pupil and hence simulates the Zernike defocus.
         :param spherical_waves: (optional)
-            ``int`` or ``float`` specifying the spherical wave, :math:`s`. This adds a term proportional to :math:`\rho^4`
+            ``int`` or ``float`` specifying the spherical wave, :math:`s`. This adds a term proportional to :math:`\\rho^4`
             across the pupil and hence simulates the spherical aberration.
         """
 
