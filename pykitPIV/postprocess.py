@@ -142,7 +142,9 @@ class Postprocess:
                     spherical_waves=0.0):
         """
         Adds defocus and/or spherical aberration to the image tensor or any image-like array of size :math:`(N, H, W)`
-        using the point-spread function (PSF) model.
+        using the point-spread function (PSF) model (see
+        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_
+        for theory).
 
         In computing the defocus, we assume that we look at perfect (isotropic) point source object(s).
         Hence, the input image tensor should come from a perfect focus scenario for accurate simulation of the defocus.
@@ -156,7 +158,9 @@ class Postprocess:
 
             \\rho = \\frac{r}{R}
 
-        where :math:`R` is the pupil radius, we build the phase component of the pupil function as:
+        where :math:`R` is the pupil radius, we build the aberration function (see Eq. (3.5) in
+        `Guang-ming Dai - Wavefront Optics for Vision Correction <https://www.spiedigitallibrary.org/ebooks/PM/Wavefront-Optics-for-Vision-Correction/eISBN-9780819478412/10.1117/3.769212>`_
+        ) as:
 
         .. math::
 
@@ -164,7 +168,10 @@ class Postprocess:
 
         where :math:`d` is the defocus wave and :math:`s` is the spherical wave.
 
-        We then compute the pupil function as:
+        We then compute the pupil function
+        (see section 6.4 in
+        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_
+        ) as:
 
         .. math::
 
@@ -231,7 +238,7 @@ class Postprocess:
         center_y = (grid_size - 1) / 2
         center_x = (grid_size - 1) / 2
 
-        # Radial distance from the center of the array:
+        # Radial distance from the center of the array, shape (grid_size, grid_size):
         r = np.sqrt((X - center_x) ** 2 + (Y - center_y) ** 2)
 
         # Mask which defines where the pupil is present:
