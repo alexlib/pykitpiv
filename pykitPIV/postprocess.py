@@ -228,7 +228,7 @@ class Postprocess:
             across the pupil and hence simulates the spherical aberration.
 
         :return:
-            - **point_spread_function_kernel** - ``numpy.ndarray`` specifying the point-spread function kernel, :math:` \\text{PSF}`.
+            - **point_spread_function_kernel** - ``numpy.ndarray`` specifying the point-spread function kernel that was computed, :math:`\\text{PSF}`.
         """
 
         from numpy.fft import fft2, ifft2, fftshift, ifftshift
