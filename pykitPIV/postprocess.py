@@ -137,15 +137,50 @@ class Postprocess:
 
     def add_defocus(self,
                     grid_size=256,
-                    pupil_radius_px=72,
+                    pupil_radius=72,
                     defocus_waves=1.0,
                     spherical_waves=0.0):
         """
-        Adds defocus to the image tensor or any image-like array of size :math:`(N, H, W)`
-        using the point spread function (PSF).
+        Adds defocus and/or spherical aberration to the image tensor or any image-like array of size :math:`(N, H, W)`
+        using the point-spread function (PSF) model.
 
-        The input image tensor should come from a perfect focus scenario (minimum Gaussian blur)
-        for accurate approximation of the defocus.
+        In computing the defocus, we assume that we look at perfect (isotropic) point source object(s).
+        Hence, the input image tensor should come from a perfect focus scenario for accurate simulation of the defocus.
+
+        We first compute the complex pupil function (we assume a circular pupil) for the point source
+        and then perform two-dimensional Fourier transform of it to get the defocused and/or aberrated image.
+
+        Given the normalized radial distance from the point source:
+
+        .. math::
+
+            \\rho = \\frac{r}{R}
+
+        where :math:`R` is the pupil radius, we build the phase component of the pupil function as:
+
+        .. math::
+
+            \\phi(\\rho) = 2 \\pi ( d \\cdot \\rho^2 + s \\cdot \\rho^4 )
+
+        where :math:`d` is the defocus wave and :math:`s` is the spherical wave.
+
+        We then compute the pupil function as:
+
+        .. math::
+
+            P(\\rho) = A(\\rho) \\cdot \\exp (i \\cdot \\phi(\\rho) )
+
+        and compute the Fourier transform of the pupil function:
+
+        .. math::
+
+            E(x, y) = \\mathcal{F} (P(\\rho))
+
+        The point-spread function kernel is then:
+
+        .. math::
+
+            \\text{PSF} = |E(x, y)|^2
 
         Here's an example synthetic defocused PIV image with Gaussian noise added:
 
@@ -168,74 +203,100 @@ class Postprocess:
 
             # Add defocus to the uploaded images:
             postprocess.add_defocus(grid_size=256,
-                                    pupil_radius_px=72,
+                                    pupil_radius=72,
                                     defocus_waves=1.0,
                                     spherical_waves=0.0)
 
         :param grid_size: (optional)
-            ``int`` or ``float`` specifying the grid size in pixels for the FFT.
-        :param pupil_radius_px: (optional)
+            ``int`` or ``float`` specifying the grid size in pixels :math:`[\\text{px}]` for the FFT.
+        :param pupil_radius: (optional)
+            ``int`` or ``float`` specifying the pupil radius, :math:`R`, in pixels :math:`[\\text{px}]`.
         :param defocus_waves: (optional)
-            ``int`` or ``float`` specifying the defocus waves.
+            ``int`` or ``float`` specifying the defocus wave, :math:`d`. This adds a term proportional to :math:`\rho^2`
+            across the pupil and hence simulates the Zernike defocus.
         :param spherical_waves: (optional)
-            ``int`` or ``float`` specifying the spherical waves.
+            ``int`` or ``float`` specifying the spherical wave, :math:`s`. This adds a term proportional to :math:`\rho^4`
+            across the pupil and hence simulates the spherical aberration.
         """
 
         from numpy.fft import fft2, ifft2, fftshift, ifftshift
 
-        # Create a particle spread function (PSF) kernel:
-        yy, xx = np.indices((grid_size, grid_size), dtype=np.float32)
-        cy = (grid_size - 1) / 2
-        cx = (grid_size - 1) / 2
-        r = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
-        R = pupil_radius_px
+        # Access image tensor dimensions:
+        n_images = self.image_tensor.shape[0]
+        image_height = self.image_tensor.shape[-2]
+        image_width = self.image_tensor.shape[-1]
 
-        pupil = (r <= R).astype(np.float32)
-        rho = np.zeros_like(r, dtype=np.float32)
+        # Create a grid for the point-spread function (PSF) kernel:
+        Y, X = np.indices((grid_size, grid_size), dtype=np.float32)
+        center_y = (grid_size - 1) / 2
+        center_x = (grid_size - 1) / 2
+
+        # Radial distance from the center of the array:
+        r = np.sqrt((X - center_x) ** 2 + (Y - center_y) ** 2)
+
+        # Mask which defines where the pupil is present:
+        pupil = (r <= pupil_radius).astype(np.float32)
         m = pupil > 0
-        rho[m] = r[m] / R
 
+        # Define the normalized radial coordinate, rho = r / R:
+        rho = np.zeros_like(r, dtype=np.float32)
+        rho[m] = r[m] / pupil_radius
+
+        # Define the phase component of the pupil function:
         phase = np.zeros_like(r, dtype=np.float32)
         phase[m] = 2 * np.pi * (defocus_waves * rho[m] ** 2 + spherical_waves * rho[m] ** 4)
 
-        pupil_field = pupil * np.exp(1j * phase)
-        E = fftshift(fft2(ifftshift(pupil_field)))
+        # Compute the complex pupil function:
+        pupil_function = pupil * np.exp(1j * phase)
+
+        # Create a point-spread function (PSF) kernel:
+        E = fftshift(fft2(ifftshift(pupil_function)))
         particle_spread_function_kernel = np.abs(E) ** 2
         particle_spread_function_kernel /= particle_spread_function_kernel.sum() + 1e-12
 
         # Convolve the image with the PSF:
         ph, pw = particle_spread_function_kernel.shape
 
-        n_images = self.image_tensor.shape[0]
-        image_height = self.image_tensor.shape[-2]
-        image_width = self.image_tensor.shape[-1]
-
         if image_height >= ph:
+
             top = (image_height - ph) // 2
-            bot = image_height - ph - top
-            particle_spread_function_kernel = np.pad(particle_spread_function_kernel, ((top, bot), (0, 0)), mode='constant')
+            bottom = image_height - ph - top
+            particle_spread_function_kernel = np.pad(particle_spread_function_kernel, ((top, bottom), (0, 0)), mode='constant')
+
         else:
+
             start = (ph - image_height) // 2
             particle_spread_function_kernel = particle_spread_function_kernel[start:start + image_height, :]
 
         ph, pw = particle_spread_function_kernel.shape
+
         if image_width >= pw:
+
             left = (image_width - pw) // 2
             right = image_width - pw - left
             particle_spread_function_kernel = np.pad(particle_spread_function_kernel, ((0, 0), (left, right)), mode='constant')
+
         else:
+
             start = (pw - image_width) // 2
             particle_spread_function_kernel = particle_spread_function_kernel[:, start:start + image_width]
 
+        # Initialize the image tensor:
         image_tensor_with_defocus = np.zeros_like(self.image_tensor)
 
         for i in range(0, n_images):
 
+            # Compute the maximum intensity of the current image:
             image_max = np.max(self.image_tensor[i,:,:])
 
-            IMG = fft2(self.image_tensor[i,:,:])
-            PSF = fft2(ifftshift(particle_spread_function_kernel))
-            image_tensor_with_defocus[i,:,:] = np.real(ifft2(IMG * PSF))
+            # FFT of the perfect point-source image:
+            image_FFT = fft2(self.image_tensor[i,:,:])
+
+            # FFT of the PSF kernel:
+            particle_spread_function_kernel_FFT = fft2(ifftshift(particle_spread_function_kernel))
+
+            # Convolve the image FFT with the PSF kernel FFT and run the inverse FFT:
+            image_tensor_with_defocus[i,:,:] = np.real(ifft2(image_FFT * particle_spread_function_kernel_FFT))
 
             # Re-scale the image back to its original range:
             image_tensor_with_defocus[i, :, :] = image_tensor_with_defocus[i,:,:] / np.max(image_tensor_with_defocus[i,:,:]) * image_max
