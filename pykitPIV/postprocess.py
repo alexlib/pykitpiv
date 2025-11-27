@@ -143,17 +143,17 @@ class Postprocess:
         """
         Adds defocus and/or spherical aberration to the image tensor or any image-like array of size :math:`(N, H, W)`
         using the point-spread function (PSF) model (see
-        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_
+        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC>`_
         for theory).
 
         .. note::
 
-            In modeling the defocus, we assume that we look at perfect (isotropic) point-source object(s) and
-            convolve it with the PSF (`Tang et al. <https://opg.optica.org/ol/fulltext.cfm?uri=ol-38-10-1706>`_).
+            In modeling the defocus, we assume that we start with an image of perfect (isotropic) point-source object(s) and
+            convolve this image with the PSF (`Tang et al. (2013) <https://opg.optica.org/ol/fulltext.cfm?uri=ol-38-10-1706>`_).
             Hence, the input image tensor should come from a perfect focus scenario for accurate simulation of the defocus.
 
-        We first compute the complex pupil function (we assume a circular pupil) for the point-source
-        and then perform two-dimensional Fourier transform of it to get the defocused and/or aberrated image.
+        We first compute the complex pupil function, assuming a circular pupil, for the point-source
+        and then perform two-dimensional fast Fourier transform (FFT) of it to get the defocused and/or aberrated image.
 
         Given the normalized radial distance from the point source:
 
@@ -173,14 +173,14 @@ class Postprocess:
 
         We then compute the complex pupil function
         (see section 6.4 in
-        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_)
+        `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC>`_)
         as:
 
         .. math::
 
             P(\\rho) = A(\\rho) \\cdot \\exp (i \\cdot \\phi(\\rho) )
 
-        and compute the Fourier transform of the pupil function:
+        and compute the FFT of the pupil function:
 
         .. math::
 
@@ -192,7 +192,7 @@ class Postprocess:
 
             \\text{PSF} = |E(x, y)|^2
 
-        The perfect point-source image is convolved with this kernel to get the final image.
+        The perfect point-source image is convolved with this kernel in the FFT space to get the final image.
 
         Here's an example synthetic defocused PIV image with Gaussian noise added:
 
