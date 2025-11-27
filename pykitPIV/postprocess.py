@@ -146,8 +146,11 @@ class Postprocess:
         `Joseph W. Goodman - Introduction to Fourier Optics <https://books.google.ch/books/about/Introduction_to_Fourier_Optics.html?id=ow5xs_Rtt9AC&redir_esc=y>`_
         for theory).
 
-        In computing the defocus, we assume that we look at perfect (isotropic) point-source object(s).
-        Hence, the input image tensor should come from a perfect focus scenario for accurate simulation of the defocus.
+        .. note::
+
+            In modeling the defocus, we assume that we look at perfect (isotropic) point-source object(s) and
+            convolve it with the PSF (`Tang et al. <https://opg.optica.org/ol/fulltext.cfm?uri=ol-38-10-1706>`_).
+            Hence, the input image tensor should come from a perfect focus scenario for accurate simulation of the defocus.
 
         We first compute the complex pupil function (we assume a circular pupil) for the point-source
         and then perform two-dimensional Fourier transform of it to get the defocused and/or aberrated image.
