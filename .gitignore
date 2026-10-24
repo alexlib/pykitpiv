@@ -30,3 +30,4 @@ jupyter-notebooks/*.dat
 jupyter-notebooks/lightning_logs*
 dist/
 scripts/*.h5
+uv.lock
